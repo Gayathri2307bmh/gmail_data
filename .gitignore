@@ -1,0 +1,9 @@
+﻿credentials.json
+.tokens/
+.env
+__pycache__/
+*.pyc
+flask.err
+flask.out
+venv/
+.venv/

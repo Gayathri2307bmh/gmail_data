@@ -1,0 +1,242 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gmail Data Extractor — Results</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,700;0,900;1,700&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+    <div class="grain"></div>
+
+    <div class="results-shell">
+
+        <!-- ── Top nav bar ── -->
+        <header class="top-nav">
+            <div class="nav-brand">
+                <span class="brand-dot"></span>
+                <span class="brand-name">GmailExtract</span>
+            </div>
+            <div class="nav-right">
+                <span class="nav-session">Connected Session</span>
+                <a href="{{ url_for('logout') }}" class="nav-logout">Sign out</a>
+            </div>
+        </header>
+
+        <!-- ── Filter bar ── -->
+        <div class="filter-card">
+            <form action="{{ url_for('emails') }}" method="get" class="filter-form">
+                <div class="filter-field grow2">
+                    <label class="filter-label">Keywords</label>
+                    <input type="text" name="keywords"
+                           placeholder="invoice, payment…"
+                           value="{{ ', '.join(keywords) }}"
+                           class="filter-input">
+                </div>
+                <div class="filter-field grow2">
+                    <label class="filter-label">From sender</label>
+                    <input type="text" name="sender"
+                           placeholder="boss@company.com"
+                           value="{{ sender_filter }}"
+                           class="filter-input">
+                </div>
+                <div class="filter-field">
+                    <label class="filter-label">Date from</label>
+                    <input type="date" name="date_from"
+                           value="{{ date_from }}"
+                           class="filter-input">
+                </div>
+                <div class="filter-field">
+                    <label class="filter-label">Date to</label>
+                    <input type="date" name="date_to"
+                           value="{{ date_to }}"
+                           class="filter-input">
+                </div>
+                <div class="filter-actions">
+                    <button type="submit" class="btn-search">Search</button>
+                    <a href="{{ url_for('emails') }}" class="btn-clear">Clear</a>
+                </div>
+            </form>
+        </div>
+
+        <!-- ── Error panel ── -->
+        {% if error_title %}
+        <div class="error-card">
+            <h3 class="error-title">{{ error_title }}</h3>
+            <p class="error-body">{{ error_message }}</p>
+            {% if setup_steps %}
+            <ol class="error-steps">
+                {% for step in setup_steps %}
+                <li>{{ step }}</li>
+                {% endfor %}
+            </ol>
+            {% endif %}
+        </div>
+        {% endif %}
+
+        <!-- ── Results header ── -->
+        <div class="results-header">
+            <div class="results-count-block">
+                {% if total_found > 0 %}
+                <h2 class="results-headline">
+                    <span class="results-num">{{ total_found }}</span>
+                    result{{ 's' if total_found != 1 else '' }}
+                    {% if keywords %} for <em>"{{ ', '.join(keywords) }}"</em>{% endif %}
+                </h2>
+                <p class="results-sub">Page {{ page }} · showing {{ emails|length }}</p>
+                {% else %}
+                    {% if not error_title %}
+                    <h2 class="results-headline">No results found</h2>
+                    <p class="results-sub">Try adjusting your keywords or filters.</p>
+                    {% endif %}
+                {% endif %}
+            </div>
+
+            {% if total_found > 0 %}
+            <div class="export-cluster">
+                <a href="{{ url_for('export',
+                           keywords=', '.join(keywords),
+                           sender=sender_filter,
+                           date_from=date_from,
+                           date_to=date_to) }}"
+                   class="export-btn export-json" target="_blank">
+                    JSON ↗
+                </a>
+                <a href="{{ url_for('export_csv',
+                           keywords=', '.join(keywords),
+                           sender=sender_filter,
+                           date_from=date_from,
+                           date_to=date_to) }}"
+                   class="export-btn export-csv">
+                    ⬇ CSV
+                </a>
+            </div>
+            {% endif %}
+        </div>
+
+        <!-- ── Email cards ── -->
+        {% if emails %}
+        <div class="cards-grid">
+            {% for email in emails %}
+            <article class="email-card">
+
+                <div class="card-header-row">
+                    <div class="card-subject-block">
+                        <p class="card-overline">Subject</p>
+                        <h3 class="card-subject">{{ email.subject }}</h3>
+                    </div>
+                    {% if email.relevance_score %}
+                    <span class="score-pill">{{ email.relevance_score }}</span>
+                    {% endif %}
+                </div>
+
+                <div class="card-meta-row">
+                    <div class="card-meta-item">
+                        <span class="meta-label">From</span>
+                        <span class="meta-value">{{ email['from'] }}</span>
+                    </div>
+                    <div class="card-meta-item">
+                        <span class="meta-label">Date</span>
+                        <span class="meta-value">{{ email.date }}</span>
+                    </div>
+                </div>
+
+                <div class="card-preview">
+                    <span class="preview-label">Preview</span>
+                    <p class="preview-text">{{ email.snippet }}</p>
+                </div>
+
+                {% if email.body_excerpt %}
+                <div class="card-body-match">
+                    <span class="preview-label">Body match</span>
+                    <p class="preview-text">{{ email.body_excerpt }}</p>
+                </div>
+                {% endif %}
+
+                {% if email.matched_keywords or email.match_sources %}
+                <div class="card-tags">
+                    {% for keyword in email.matched_keywords %}
+                    <span class="kw-tag">{{ keyword }}</span>
+                    {% endfor %}
+                    {% for source in email.match_sources %}
+                    <span class="src-tag src-{{ source }}">{{ source }}</span>
+                    {% endfor %}
+                </div>
+                {% endif %}
+
+                <div class="extracted-grid">
+                    <div class="ext-cell">
+                        <p class="ext-label">Emails</p>
+                        <p class="ext-value">{{ email.extracted_fields.emails|join(', ') if email.extracted_fields.emails else '—' }}</p>
+                    </div>
+                    <div class="ext-cell">
+                        <p class="ext-label">Phones</p>
+                        <p class="ext-value">{{ email.extracted_fields.phones|join(', ') if email.extracted_fields.phones else '—' }}</p>
+                    </div>
+                    <div class="ext-cell">
+                        <p class="ext-label">Dates</p>
+                        <p class="ext-value">{{ email.extracted_fields.dates|join(', ') if email.extracted_fields.dates else '—' }}</p>
+                    </div>
+                    <div class="ext-cell">
+                        <p class="ext-label">Amounts</p>
+                        <p class="ext-value">{{ email.extracted_fields.amounts|join(', ') if email.extracted_fields.amounts else '—' }}</p>
+                    </div>
+                    <div class="ext-cell ext-cell-wide">
+                        <p class="ext-label">Links</p>
+                        {% if email.extracted_fields.links %}
+                        <div class="ext-links">
+                            {% for link in email.extracted_fields.links %}
+                            <a href="{{ link }}" target="_blank" rel="noopener" class="ext-link">
+                                {{ link[:60] }}{% if link|length > 60 %}…{% endif %}
+                            </a>
+                            {% endfor %}
+                        </div>
+                        {% else %}
+                        <p class="ext-value">—</p>
+                        {% endif %}
+                    </div>
+                </div>
+
+            </article>
+            {% endfor %}
+        </div>
+
+        <!-- ── Pagination ── -->
+        <div class="pagination-bar">
+            <a class="pag-btn {% if not has_prev %}pag-disabled{% endif %}"
+               href="{{ url_for('emails',
+                   keywords=', '.join(keywords),
+                   sender=sender_filter,
+                   date_from=date_from,
+                   date_to=date_to,
+                   page=page - 1) }}">← Prev</a>
+            <span class="pag-info">Page {{ page }} of {{ ((total_found - 1) // 10 + 1) if total_found > 0 else 1 }}</span>
+            <a class="pag-btn {% if not has_next %}pag-disabled{% endif %}"
+               href="{{ url_for('emails',
+                   keywords=', '.join(keywords),
+                   sender=sender_filter,
+                   date_from=date_from,
+                   date_to=date_to,
+                   page=page + 1) }}">Next →</a>
+        </div>
+
+        {% else %}
+        <!-- ── Empty state ── -->
+        <div class="empty-state">
+            <div class="empty-glyph">✉</div>
+            {% if keywords or sender_filter or date_from or date_to %}
+            <h3>No emails matched your filters</h3>
+            <p>Try broader keywords, a wider date range, or remove the sender filter.</p>
+            {% else %}
+            <h3>No emails found</h3>
+            <p>Enter keywords above and click Search.</p>
+            {% endif %}
+        </div>
+        {% endif %}
+
+    </div>
+</body>
+</html>
