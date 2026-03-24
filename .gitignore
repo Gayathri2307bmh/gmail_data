@@ -1,9 +1,28 @@
-﻿credentials.json
+# --- Security / Secrets ---
+credentials.json
 .tokens/
 .env
+
+# --- Python cache ---
 __pycache__/
 *.pyc
+
+# --- Logs ---
 flask.err
 flask.out
+*.log
+
+# --- Virtual environments ---
 venv/
 .venv/
+env/
+ENV/
+
+# --- Build / packaging ---
+build/
+dist/
+*.egg-info/
+
+# --- OS / misc ---
+.DS_Store
+Thumbs.dbs
