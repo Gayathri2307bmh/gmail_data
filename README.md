@@ -2,7 +2,7 @@
 
 A powerful Flask-based application that connects to Gmail using Google OAuth and intelligently extracts, filters, and structures email data based on keywords.
 
-## 🔍 What this project does
+##  What this project does
 
 This tool helps you:
 - Search Gmail inbox using keywords
